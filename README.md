@@ -1,4 +1,4 @@
-# Athasha Node
+# AppShell Node
 
 Ash.Node is a tree building DSL with diffing.
 
