@@ -1,6 +1,6 @@
 # AppShell Node
 
-Ash.Node is a tree building DSL with diffing.
+Ash.Node is a tree building DSL.
 
 ```elixir
 use Ash.Node
@@ -18,4 +18,4 @@ Nodes are composed of:
 
 # Roadmap
 
-- [ ] Implement diffing
+- [ ] Diffing required?
