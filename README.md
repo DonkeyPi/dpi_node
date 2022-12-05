@@ -1,13 +1,22 @@
 # AppShell Node
 
-Ash.Node is a tree building DSL.
+Ash.Node is a tree builder used by `ash_react`.
 
 ```elixir
 use Ash.Node
-use Ash.Tui
-node :main, Panel, width: 800, height: 480 do
-  node(:label, Label, x: 10, y: 10 text: "Hello")
-end
+
+Ash.Node.Builder.build(fn ->
+  node :main, Panel, width: 800, height: 480 do
+    node(:label, Label, x: 10, y: 10, text: "Hello")
+  end
+end)
+
+#output
+{:main, Panel, [width: 800, height: 480],
+  [
+    {:label, Label, [x: 10, y: 10, text: "Hello"], []}
+  ]
+}
 ```
 
 Nodes are composed of:
