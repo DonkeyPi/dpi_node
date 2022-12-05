@@ -1,11 +1,16 @@
 defmodule Ash.Node.Builder do
+  defp get(), do: Process.get(__MODULE__)
+  defp put(state), do: Process.put(__MODULE__, state)
+  defp check({:disabled, _}, node), do: raise("Invalid node location: #{inspect(node)}")
+  defp check(_, _), do: :ok
+
   def start() do
     # assert_raise may leave partial state behind
-    Process.put(__MODULE__, [{[], %{}}])
+    put([{[], %{}}])
   end
 
   def stop() do
-    state = Process.put(__MODULE__, nil)
+    state = get()
 
     case state do
       [{list, _map}] -> list |> Enum.reverse()
@@ -14,37 +19,34 @@ defmodule Ash.Node.Builder do
   end
 
   def disable() do
-    state = Process.put(__MODULE__, nil)
-    Process.put(__MODULE__, {:disabled, state})
+    state = get()
+    put({:disabled, state})
   end
 
   def enable() do
-    {:disabled, state} = Process.put(__MODULE__, nil)
-    Process.put(__MODULE__, state)
+    {:disabled, state} = get()
+    put(state)
   end
-
-  def check({:disabled, _}, node), do: raise("Invalid node location: #{inspect(node)}")
-  def check(_, _), do: :ok
 
   def add({id, _, props, _} = node) do
     if not Keyword.keyword?(props), do: raise("Invalid node props: #{inspect(props)}")
-    state = Process.get(__MODULE__)
+    state = get()
     check(state, node)
     [{list, map} | tail] = state
     list = [node | list]
     if Map.has_key?(map, id), do: raise("Node with duplicated id: #{inspect(node)}")
     map = Map.put(map, id, node)
-    Process.put(__MODULE__, [{list, map} | tail])
+    put([{list, map} | tail])
   end
 
   def push() do
-    stack = Process.get(__MODULE__)
-    Process.put(__MODULE__, [{[], %{}} | stack])
+    stack = get()
+    put([{[], %{}} | stack])
   end
 
   def pop() do
-    [{list, _map} | tail] = Process.get(__MODULE__)
-    Process.put(__MODULE__, tail)
+    [{list, _map} | tail] = get()
+    put(tail)
     list |> Enum.reverse()
   end
 
