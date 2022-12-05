@@ -4,7 +4,7 @@ defmodule Ash.Node.Test do
   use Ash.Node
 
   # FIXME what about passing a node call as a property? node(:id, Root, p: node(:id, Root, []))
-  test "node builder test" do
+  test "valid builds test" do
     # with props but no body
     ast = Builder.build(fn -> node(:id, Root, p: 0) end)
     assert ast == {:id, Root, [p: 0], []}
@@ -78,5 +78,47 @@ defmodule Ash.Node.Test do
                 {{0, 1}, Body, [], []},
                 {{1, 0}, Head, [], []}
               ]}
+  end
+
+  test "invalid builds test" do
+    assert_raise RuntimeError, "Root node cannot be empty", fn ->
+      Builder.build(fn -> nil end)
+    end
+
+    assert_raise RuntimeError, "Root node must be single", fn ->
+      Builder.build(fn ->
+        node(0, Root, [])
+        node(1, Root, [])
+      end)
+    end
+
+    assert_raise RuntimeError, "Node with duplicated id: {1, Child, [], []}", fn ->
+      Builder.build(fn ->
+        node 0, Root, [] do
+          node(1, Child, [])
+          node(1, Child, [])
+        end
+      end)
+    end
+
+    assert_raise RuntimeError, "Invalid node props: {1, 2}", fn ->
+      Builder.build(fn -> node(0, Root, {1, 2}) end)
+    end
+
+    assert_raise RuntimeError, "Invalid node location: {1, Child, [], []}", fn ->
+      Builder.build(fn -> node(node(1, Child, []), Root, []) end)
+    end
+
+    assert_raise RuntimeError, "Invalid node location: {1, Child, [], []}", fn ->
+      Builder.build(fn -> node(0, node(1, Child, []), []) end)
+    end
+
+    assert_raise RuntimeError, "Invalid node location: {1, Child, [], []}", fn ->
+      Builder.build(fn -> node(0, Root, node(1, Child, [])) end)
+    end
+
+    assert_raise RuntimeError, "Invalid node location: {1, Child, [], []}", fn ->
+      Builder.build(fn -> node(0, Root, p: node(1, Child, [])) end)
+    end
   end
 end
