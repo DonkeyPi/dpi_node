@@ -21,7 +21,7 @@ end)
 
 Nodes are composed of:
 - ID -> any term
-- Handler -> any term, usually a module, function, or just a type tag
+- Handler -> either an atom or a function/1 that receives props as map
 - Properties -> keyword
 - Children nodes -> nested
 

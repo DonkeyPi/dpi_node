@@ -3,22 +3,59 @@ defmodule Ash.Node.Test do
   alias Ash.Node.Builder
   use Ash.Node
 
-  # FIXME what about passing a node call as a property? node(:id, Root, p: node(:id, Root, []))
-  test "valid builds test" do
-    # with props but no body
-    ast = Builder.build(fn -> node(:id, Root, p: 0) end)
-    assert ast == {:id, Root, [p: 0], []}
+  test "valid builds - node with minimal data" do
+    ast = Builder.build(fn -> node(:id, Root, []) end)
+    assert ast == {:id, Root, [], []}
+  end
 
-    # with props but empty body
+  test "valid builds - node with props but no body" do
+    ast = Builder.build(fn -> node(:id, Root, p0: 0, p1: 1) end)
+    assert ast == {:id, Root, [p0: 0, p1: 1], []}
+  end
+
+  test "valid builds - node with props and empty body" do
     ast =
       Builder.build(fn ->
-        node :id, Root, p: 0 do
+        node :id, Root, p0: 0, p1: 1 do
         end
       end)
 
-    assert ast == {:id, Root, [p: 0], []}
+    assert ast == {:id, Root, [p0: 0, p1: 1], []}
+  end
 
-    # children list with props
+  test "valid builds - node with one child" do
+    ast =
+      Builder.build(fn ->
+        node :id, Root, p0: 0, p1: 1 do
+          node(0, Child0, p2: 2, p3: 3)
+        end
+      end)
+
+    assert ast ==
+             {:id, Root, [p0: 0, p1: 1],
+              [
+                {0, Child0, [p2: 2, p3: 3], []}
+              ]}
+  end
+
+  test "valid builds - node with two children in sigle body" do
+    ast =
+      Builder.build(fn ->
+        node :id, Root, p0: 0, p1: 1 do
+          node(0, Child0, p2: 2, p3: 3)
+          node(1, Child1, p4: 4, p5: 5)
+        end
+      end)
+
+    assert ast ==
+             {:id, Root, [p0: 0, p1: 1],
+              [
+                {0, Child0, [p2: 2, p3: 3], []},
+                {1, Child1, [p4: 4, p5: 5], []}
+              ]}
+  end
+
+  test "valid builds - node with children generator" do
     ast =
       Builder.build(fn ->
         node :id, Root, p: 0 do
@@ -32,92 +69,196 @@ defmodule Ash.Node.Test do
                 {0, Child, [p: "0"], []},
                 {1, Child, [p: "1"], []}
               ]}
+  end
 
-    # nested children list
+  test "valid builds - node with nested children generator" do
     ast =
       Builder.build(fn ->
-        node :id, Root, [] do
+        node :id, Root, p: 0 do
           for i <- 0..1 do
-            for j <- 0..1 do
-              node({i, j}, Child, [])
+            for j <- 2..3 do
+              node({i, j}, Child, p: {j, i})
             end
           end
         end
       end)
 
     assert ast ==
-             {:id, Root, [],
+             {:id, Root, [p: 0],
               [
-                {{0, 0}, Child, [], []},
-                {{0, 1}, Child, [], []},
-                {{1, 0}, Child, [], []},
-                {{1, 1}, Child, [], []}
-              ]}
-
-    # conditionals
-    # nil child not collected
-    # multiple nodes in same body
-    ast =
-      Builder.build(fn ->
-        node :id, Root, [] do
-          for i <- 0..1 do
-            node({i, 0}, Head, [])
-
-            case rem(i, 2) do
-              0 -> node({i, 1}, Body, [])
-              1 -> nil
-            end
-          end
-        end
-      end)
-
-    assert ast ==
-             {:id, Root, [],
-              [
-                {{0, 0}, Head, [], []},
-                {{0, 1}, Body, [], []},
-                {{1, 0}, Head, [], []}
+                {{0, 2}, Child, [p: {2, 0}], []},
+                {{0, 3}, Child, [p: {3, 0}], []},
+                {{1, 2}, Child, [p: {2, 1}], []},
+                {{1, 3}, Child, [p: {3, 1}], []}
               ]}
   end
 
-  test "invalid builds test" do
+  test "valid builds - node with conditional children" do
+    ast =
+      Builder.build(fn ->
+        node :id, Root, p: 0 do
+          for i <- 0..3 do
+            if rem(i, 2) == 0 do
+              node(i, Child, p: i)
+            end
+          end
+        end
+      end)
+
+    assert ast ==
+             {:id, Root, [p: 0],
+              [
+                {0, Child, [p: 0], []},
+                {2, Child, [p: 2], []}
+              ]}
+  end
+
+  test "valid builds - node with function node" do
+    handler = fn %{p: p} -> node(p, Child, p: p) end
+
+    ast =
+      Builder.build(fn ->
+        node(:id, handler, p: 0)
+      end)
+
+    assert match?(
+             {:id, _, [p: 0],
+              [
+                {0, Child, [p: 0], []}
+              ]},
+             ast
+           )
+  end
+
+  test "valid builds - node with empty function node" do
+    handler = fn _ -> nil end
+
+    ast =
+      Builder.build(fn ->
+        node(:id, handler, p: 0)
+      end)
+
+    assert match?(
+             {:id, _, [p: 0], []},
+             ast
+           )
+  end
+
+  test "valid builds - node with recursive function node" do
+    handler_id = {__MODULE__, UUID.uuid1()}
+
+    handler = fn %{p: p} ->
+      handler = Process.get(handler_id)
+
+      cond do
+        p > 0 -> node(:id, handler, p: p - 1)
+        true -> nil
+      end
+    end
+
+    Process.put(handler_id, handler)
+
+    ast =
+      Builder.build(fn ->
+        node(:id, handler, p: 2)
+      end)
+
+    assert match?(
+             {:id, _, [p: 2],
+              [
+                {:id, _, [p: 1],
+                 [
+                   {:id, _, [p: 0], []}
+                 ]}
+              ]},
+             ast
+           )
+  end
+
+  test "invalid builds - node with non keyword props" do
+    assert_raise RuntimeError, "Node props must be a keyword: {:id, Root, :props}", fn ->
+      Builder.build(fn -> node(:id, Root, :props) end)
+    end
+  end
+
+  test "invalid builds - node with non atom nor function/1 handler (tuple)" do
+    assert_raise RuntimeError,
+                 "Node handler must be atom or function/1: {:id, {Handler}, []}",
+                 fn ->
+                   Builder.build(fn -> node(:id, {Handler}, []) end)
+                 end
+  end
+
+  test "invalid builds - node with non atom nor function/1 handler (function/2)" do
+    handler = fn _, _ -> nil end
+
+    assert_raise RuntimeError,
+                 ~r/^Node handler must be atom or function\/1: {:id, .*, \[]}$/,
+                 fn ->
+                   Builder.build(fn -> node(:id, handler, []) end)
+                 end
+  end
+
+  test "invalid builds - node with function handler cannot have body" do
+    handler = fn _ -> nil end
+
+    assert_raise RuntimeError,
+                 ~r/^Node handler must be atom: {:id, .*, \[]}$/,
+                 fn ->
+                   Builder.build(fn ->
+                     node :id, handler, [] do
+                       nil
+                     end
+                   end)
+                 end
+  end
+
+  test "invalid builds - root empty node" do
     assert_raise RuntimeError, "Root node cannot be empty", fn ->
       Builder.build(fn -> nil end)
     end
+  end
 
+  test "invalid builds - multiple root nodes" do
     assert_raise RuntimeError, "Root node must be single", fn ->
       Builder.build(fn ->
         node(0, Root, [])
         node(1, Root, [])
       end)
     end
+  end
 
-    assert_raise RuntimeError, "Node with duplicated id: {1, Child, [], []}", fn ->
+  test "invalid builds - node child with diplicated id" do
+    assert_raise RuntimeError, "Node with duplicated id: {1, Child2, []}", fn ->
       Builder.build(fn ->
         node 0, Root, [] do
-          node(1, Child, [])
-          node(1, Child, [])
+          node(1, Child1, [])
+          node(1, Child2, [])
         end
       end)
     end
+  end
 
-    assert_raise RuntimeError, "Invalid node props: {1, 2}", fn ->
-      Builder.build(fn -> node(0, Root, {1, 2}) end)
-    end
-
-    assert_raise RuntimeError, "Invalid node location: {1, Child, [], []}", fn ->
+  test "invalid builds - node id has a node call" do
+    assert_raise RuntimeError, "Invalid node location: {1, Child, []}", fn ->
       Builder.build(fn -> node(node(1, Child, []), Root, []) end)
     end
+  end
 
-    assert_raise RuntimeError, "Invalid node location: {1, Child, [], []}", fn ->
+  test "invalid builds - node handler has a node call" do
+    assert_raise RuntimeError, "Invalid node location: {1, Child, []}", fn ->
       Builder.build(fn -> node(0, node(1, Child, []), []) end)
     end
+  end
 
-    assert_raise RuntimeError, "Invalid node location: {1, Child, [], []}", fn ->
+  test "invalid builds - node props has a node call" do
+    assert_raise RuntimeError, "Invalid node location: {1, Child, []}", fn ->
       Builder.build(fn -> node(0, Root, node(1, Child, [])) end)
     end
+  end
 
-    assert_raise RuntimeError, "Invalid node location: {1, Child, [], []}", fn ->
+  test "invalid builds - node prop value has a node call" do
+    assert_raise RuntimeError, "Invalid node location: {1, Child, []}", fn ->
       Builder.build(fn -> node(0, Root, p: node(1, Child, [])) end)
     end
   end

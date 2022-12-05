@@ -28,13 +28,18 @@ defmodule Ash.Node.Builder do
     put(state)
   end
 
-  def add({id, _, props, _} = node) do
-    if not Keyword.keyword?(props), do: raise("Invalid node props: #{inspect(props)}")
+  def add({id, handler, props, _} = node) do
+    if not Keyword.keyword?(props),
+      do: raise("Node props must be a keyword: #{inspect({id, handler, props})}")
+
     state = get()
-    check(state, node)
+    check(state, {id, handler, props})
     [{list, map} | tail] = state
     list = [node | list]
-    if Map.has_key?(map, id), do: raise("Node with duplicated id: #{inspect(node)}")
+
+    if Map.has_key?(map, id),
+      do: raise("Node with duplicated id: #{inspect({id, handler, props})}")
+
     map = Map.put(map, id, node)
     put([{list, map} | tail])
   end

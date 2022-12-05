@@ -18,6 +18,6 @@ defmodule Ash.Node.MixProject do
   end
 
   defp deps do
-    []
+    [{:uuid, "~> 1.1", runtime: false}]
   end
 end

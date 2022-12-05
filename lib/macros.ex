@@ -1,28 +1,55 @@
 defmodule Ash.Node.Macros do
+  alias Ash.Node.Builder
+
   defmacro node(id, handler, props) do
     quote do
-      Ash.Node.Builder.disable()
+      Builder.disable()
       id = unquote(id)
       handler = unquote(handler)
       props = unquote(props)
-      node = {id, handler, props, []}
-      Ash.Node.Builder.enable()
-      Ash.Node.Builder.add(node)
+      Builder.enable()
+
+      children =
+        cond do
+          is_function(handler, 1) ->
+            Builder.push()
+            handler.(props |> Enum.into(%{}))
+            Builder.pop()
+
+          is_atom(handler) ->
+            []
+
+          true ->
+            raise("Node handler must be atom or function/1: #{inspect({id, handler, props})}")
+        end
+
+      node = {id, handler, props, children}
+      Builder.add(node)
     end
   end
 
-  defmacro node(id, handler, props, do: inner) do
+  defmacro node(id, handler, props, do: body) do
     quote do
-      Ash.Node.Builder.push()
-      unquote(inner)
-      children = Ash.Node.Builder.pop()
-      Ash.Node.Builder.disable()
+      Builder.disable()
       id = unquote(id)
       handler = unquote(handler)
       props = unquote(props)
+      Builder.enable()
+
+      if not Keyword.keyword?(props) do
+        raise("Node props must be a keyword: #{inspect({id, handler, props})}")
+      end
+
+      if not is_atom(handler) do
+        raise("Node handler must be atom: #{inspect({id, handler, props})}")
+      end
+
+      Builder.push()
+      unquote(body)
+      children = Builder.pop()
+
       node = {id, handler, props, children}
-      Ash.Node.Builder.enable()
-      Ash.Node.Builder.add(node)
+      Builder.add(node)
     end
   end
 end
