@@ -31,6 +31,8 @@ defmodule Ash.Node.Parser do
   end
 
   def parse(other) do
+    IO.inspect(other)
+
     quote do
       unquote(other)
     end
