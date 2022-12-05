@@ -11,7 +11,7 @@ Ash.Node.Builder.build(fn ->
   end
 end)
 
-#output
+# output
 {:main, Panel, [width: 800, height: 480],
   [
     {:label, Label, [x: 10, y: 10, text: "Hello"], []}
@@ -20,11 +20,14 @@ end)
 ```
 
 Nodes are composed of:
-- ID -> any term
-- Handler -> either an atom or a function/1 that receives props as map
-- Properties -> keyword
-- Children nodes -> nested
 
-# Roadmap
+- ID -> Any term.
+- Handler -> Either an atom or a function/1 that receives props as map.
+- Properties -> A keyword of properties.
+- Children -> Nested nodes.
 
-- [ ] Diffing required?
+Other considerations:
+
+- Upon evaluation of a function handler generated nodes are integrated into the parent children with a composite id {funct_id, node_id}.
+- Function handlers can generate any number of nodes including zero.
+- Root functions (the ones passed to Ash.Node.Builder.build) must generate a single node.

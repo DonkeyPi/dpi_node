@@ -58,11 +58,12 @@ defmodule Ash.Node.Builder do
   def build(function) do
     start()
     function.()
+    nodes = stop()
 
-    case stop() do
+    case nodes do
       [root] -> root
       [] -> raise "Root node cannot be empty"
-      _ -> raise "Root node must be single"
+      _ -> raise "Root node must be single but got #{length(nodes)}"
     end
   end
 end

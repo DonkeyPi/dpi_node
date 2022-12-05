@@ -113,35 +113,53 @@ defmodule Ash.Node.Test do
               ]}
   end
 
-  test "valid builds - node with function node" do
-    handler = fn %{p: p} -> node(p, Child, p: p) end
+  test "valid builds - root node with function root node" do
+    handler = fn %{p: p} -> node(p, Child, []) end
 
     ast =
       Builder.build(fn ->
         node(:id, handler, p: 0)
       end)
 
-    assert match?(
-             {:id, _, [p: 0],
-              [
-                {0, Child, [p: 0], []}
-              ]},
-             ast
-           )
+    assert ast == {{:id, 0}, Child, [], []}
   end
 
-  test "valid builds - node with empty function node" do
-    handler = fn _ -> nil end
+  test "valid builds - root node with function child node (single child)" do
+    handler = fn _ -> node(1, Child, []) end
 
     ast =
       Builder.build(fn ->
-        node(:id, handler, p: 0)
+        node :id, Root, [] do
+          node(0, handler, [])
+        end
       end)
 
-    assert match?(
-             {:id, _, [p: 0], []},
-             ast
-           )
+    assert ast ==
+             {:id, Root, [],
+              [
+                {{0, 1}, Child, [], []}
+              ]}
+  end
+
+  test "valid builds - root node with function child node (multiple children)" do
+    handler = fn _ ->
+      node(1, Child, [])
+      node(2, Child, [])
+    end
+
+    ast =
+      Builder.build(fn ->
+        node :id, Root, [] do
+          node(0, handler, [])
+        end
+      end)
+
+    assert ast ==
+             {:id, Root, [],
+              [
+                {{0, 1}, Child, [], []},
+                {{0, 2}, Child, [], []}
+              ]}
   end
 
   test "valid builds - node with recursive function node" do
@@ -151,8 +169,8 @@ defmodule Ash.Node.Test do
       handler = Process.get(handler_id)
 
       cond do
-        p > 0 -> node(:id, handler, p: p - 1)
-        true -> nil
+        p > 0 -> node(p, handler, p: p - 1)
+        true -> node(p, Child, [])
       end
     end
 
@@ -163,16 +181,7 @@ defmodule Ash.Node.Test do
         node(:id, handler, p: 2)
       end)
 
-    assert match?(
-             {:id, _, [p: 2],
-              [
-                {:id, _, [p: 1],
-                 [
-                   {:id, _, [p: 0], []}
-                 ]}
-              ]},
-             ast
-           )
+    assert ast == {{:id, {2, {1, 0}}}, Child, [], []}
   end
 
   test "invalid builds - node with non keyword props" do
@@ -219,12 +228,31 @@ defmodule Ash.Node.Test do
     end
   end
 
+  test "invalid builds - root empty node from function handler" do
+    handler = fn _ -> nil end
+
+    assert_raise RuntimeError, "Root node cannot be empty", fn ->
+      Builder.build(fn -> node(:id, handler, []) end)
+    end
+  end
+
   test "invalid builds - multiple root nodes" do
-    assert_raise RuntimeError, "Root node must be single", fn ->
+    assert_raise RuntimeError, "Root node must be single but got 2", fn ->
       Builder.build(fn ->
         node(0, Root, [])
         node(1, Root, [])
       end)
+    end
+  end
+
+  test "invalid builds - multiple root nodes from function handler" do
+    handler = fn _ ->
+      node(0, Root, [])
+      node(1, Root, [])
+    end
+
+    assert_raise RuntimeError, "Root node must be single but got 2", fn ->
+      Builder.build(fn -> node(:id, handler, []) end)
     end
   end
 
