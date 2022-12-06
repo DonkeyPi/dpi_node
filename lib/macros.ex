@@ -12,10 +12,10 @@ defmodule Ash.Node.Macros do
       cond do
         # Children are integrated into parent node with composite id.
         is_function(handler, 1) ->
-          Builder.push()
+          Builder.push(id)
           handler.(props |> Enum.into(%{}))
 
-          Builder.pop()
+          Builder.pop(id)
           |> Enum.each(fn {n_id, n_handler, n_props, n_children} ->
             {{id, n_id}, n_handler, n_props, n_children}
             |> Builder.add()
@@ -47,9 +47,9 @@ defmodule Ash.Node.Macros do
         raise("Node handler must be atom: #{inspect({id, handler, props})}")
       end
 
-      Builder.push()
+      Builder.push(id)
       unquote(body)
-      children = Builder.pop()
+      children = Builder.pop(id)
 
       node = {id, handler, props, children}
       Builder.add(node)

@@ -4,16 +4,16 @@ defmodule Ash.Node.Builder do
   defp check({:disabled, _}, node), do: raise("Invalid node location: #{inspect(node)}")
   defp check(_, _), do: :ok
 
-  def start() do
+  def start(visitor) do
     # assert_raise may leave partial state behind
-    put([{[], %{}}])
+    put([{visitor, [], %{}}])
   end
 
   def stop() do
     state = get()
 
     case state do
-      [{list, _map}] -> list |> Enum.reverse()
+      [{_visitor, list, _map}] -> list |> Enum.reverse()
       _ -> raise "Invalid builder state #{inspect(state)}"
     end
   end
@@ -34,29 +34,33 @@ defmodule Ash.Node.Builder do
 
     state = get()
     check(state, {id, handler, props})
-    [{list, map} | tail] = state
+    [{visitor, list, map} | tail] = state
     list = [node | list]
 
     if Map.has_key?(map, id),
       do: raise("Node with duplicated id: #{inspect({id, handler, props})}")
 
+    if visitor != nil, do: visitor.(:add, id)
     map = Map.put(map, id, node)
-    put([{list, map} | tail])
+    put([{visitor, list, map} | tail])
   end
 
-  def push() do
-    stack = get()
-    put([{[], %{}} | stack])
+  def push(id) do
+    state = get()
+    [{visitor, _list, _map} | _tail] = state
+    if visitor != nil, do: visitor.(:push, id)
+    put([{visitor, [], %{}} | state])
   end
 
-  def pop() do
-    [{list, _map} | tail] = get()
+  def pop(id) do
+    [{visitor, list, _map} | tail] = get()
+    if visitor != nil, do: visitor.(:pop, id)
     put(tail)
     list |> Enum.reverse()
   end
 
-  def build(function) do
-    start()
+  def build(function, visitor \\ nil) do
+    start(visitor)
     function.()
     nodes = stop()
 
