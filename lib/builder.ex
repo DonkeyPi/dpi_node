@@ -30,7 +30,7 @@ defmodule Ash.Node.Builder do
 
   def add({id, handler, props, _} = node) do
     if not Keyword.keyword?(props),
-      do: raise("Node props must be a keyword: #{inspect({id, handler, props})}")
+      do: raise("Node props must be keyword: #{inspect({id, handler, props})}")
 
     state = get()
     check(state, {id, handler, props})

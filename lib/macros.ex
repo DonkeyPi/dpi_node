@@ -40,7 +40,7 @@ defmodule Ash.Node.Macros do
       Builder.enable()
 
       if not Keyword.keyword?(props) do
-        raise("Node props must be a keyword: #{inspect({id, handler, props})}")
+        raise("Node props must be keyword: #{inspect({id, handler, props})}")
       end
 
       if not is_atom(handler) do

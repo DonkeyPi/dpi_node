@@ -185,7 +185,7 @@ defmodule Ash.Node.Test do
   end
 
   test "invalid builds - node with non keyword props" do
-    assert_raise RuntimeError, "Node props must be a keyword: {:id, Root, :props}", fn ->
+    assert_raise RuntimeError, "Node props must be keyword: {:id, Root, :props}", fn ->
       Builder.build(fn -> node(:id, Root, :props) end)
     end
   end
