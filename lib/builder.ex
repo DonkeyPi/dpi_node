@@ -1,61 +1,65 @@
 defmodule Ash.Node.Builder do
-  defp get(), do: Process.get(__MODULE__)
-  defp put(state), do: Process.put(__MODULE__, state)
-  defp check({:disabled, _}, node), do: raise("Invalid node location: #{inspect(node)}")
-  defp check(_, _), do: :ok
+  defp get(key), do: Process.get({__MODULE__, key})
+  defp put(key, data), do: Process.put({__MODULE__, key}, data)
+
+  defp check(0, _), do: :ok
+  defp check(_, node), do: raise("Invalid node location: #{inspect(node)}")
+
+  defp visit(nil, _, _), do: :nop
+  defp visit(visitor, cmd, data), do: visitor.(cmd, data)
 
   def start(visitor) do
     # assert_raise may leave partial state behind
-    put([{visitor, [], %{}}])
+    put(:disabled, 0)
+    put(:visitor, visitor)
+    put(:state, [{[], %{}}])
   end
 
   def stop() do
-    state = get()
+    state = get(:state)
 
     case state do
-      [{_visitor, list, _map}] -> list |> Enum.reverse()
+      [{list, _map}] -> list |> Enum.reverse()
       _ -> raise "Invalid builder state #{inspect(state)}"
     end
   end
 
   def disable() do
-    state = get()
-    put({:disabled, state})
+    put(:disabled, get(:disabled) + 1)
   end
 
   def enable() do
-    {:disabled, state} = get()
-    put(state)
+    put(:disabled, get(:disabled) - 1)
   end
 
   def add({id, handler, props, _} = node) do
     if not Keyword.keyword?(props),
       do: raise("Node props must be keyword: #{inspect({id, handler, props})}")
 
-    state = get()
-    check(state, {id, handler, props})
-    [{visitor, list, map} | tail] = state
+    state = get(:state)
+    check(get(:disabled), {id, handler, props})
+    [{list, map} | tail] = state
     list = [node | list]
 
     if Map.has_key?(map, id),
       do: raise("Node with duplicated id: #{inspect({id, handler, props})}")
 
-    if visitor != nil, do: visitor.(:add, id)
+    visit(get(:visitor), :add, id)
     map = Map.put(map, id, node)
-    put([{visitor, list, map} | tail])
+    put(:state, [{list, map} | tail])
   end
 
   def push(id) do
-    state = get()
-    [{visitor, _list, _map} | _tail] = state
-    if visitor != nil, do: visitor.(:push, id)
-    put([{visitor, [], %{}} | state])
+    state = get(:state)
+    [{_list, _map} | _tail] = state
+    visit(get(:visitor), :push, id)
+    put(:state, [{[], %{}} | state])
   end
 
   def pop(id) do
-    [{visitor, list, _map} | tail] = get()
-    if visitor != nil, do: visitor.(:pop, id)
-    put(tail)
+    [{list, _map} | tail] = get(:state)
+    visit(get(:visitor), :pop, id)
+    put(:state, tail)
     list |> Enum.reverse()
   end
 
