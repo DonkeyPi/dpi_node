@@ -1,4 +1,4 @@
-defmodule Ash.Node.Visitor.Test do
+defmodule VisitorTest do
   use ExUnit.Case
   alias Ash.Node.Builder
   use Ash.Node
