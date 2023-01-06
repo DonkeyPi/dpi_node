@@ -1,4 +1,4 @@
-defmodule Ash.Node.Builder do
+defmodule Dpi.Node.Builder do
   defp get(key), do: Process.get({__MODULE__, key})
   defp put(key, data), do: Process.put({__MODULE__, key}, data)
 

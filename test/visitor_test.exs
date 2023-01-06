@@ -1,7 +1,7 @@
-defmodule Ash.VisitorTest do
+defmodule Dpi.VisitorTest do
   use ExUnit.Case
-  alias Ash.Node.Builder
-  use Ash.Node
+  alias Dpi.Node.Builder
+  use Dpi.Node
 
   test "visitor - root node" do
     Visitor.start()

@@ -1,7 +1,7 @@
-defmodule Ash.NodeTest do
+defmodule Dpi.NodeTest do
   use ExUnit.Case
-  alias Ash.Node.Builder
-  use Ash.Node
+  alias Dpi.Node.Builder
+  use Dpi.Node
 
   test "valid builds - node with minimal data" do
     ast = Builder.build(fn -> node(:id, Root, []) end)

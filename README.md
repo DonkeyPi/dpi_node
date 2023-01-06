@@ -1,8 +1,8 @@
-# AppShell Node
+# DonkeyPi Node
 
-Ash.Node is a tree builder used by `ash_react`.
+Dpi.Node is a tree builder used by `dpi_react`.
 
-See `ash_sample`.
+See `dpi_sample`.
 
 Nodes are composed of:
 
@@ -15,4 +15,4 @@ Other considerations:
 
 - Upon evaluation of a function handler generated nodes are integrated into the parent children with a composite id {funct_id, node_id}.
 - Function handlers can generate any number of nodes including zero.
-- Root functions (the ones passed to Ash.Node.Builder.build) must generate a single node.
+- Root functions (the ones passed to Dpi.Node.Builder.build) must generate a single node.

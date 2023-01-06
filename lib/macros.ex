@@ -1,5 +1,5 @@
-defmodule Ash.Node.Macros do
-  alias Ash.Node.Builder
+defmodule Dpi.Node.Macros do
+  alias Dpi.Node.Builder
 
   defmacro node(id, handler, props) do
     quote do

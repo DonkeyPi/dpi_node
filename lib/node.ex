@@ -1,7 +1,7 @@
-defmodule Ash.Node do
+defmodule Dpi.Node do
   defmacro __using__(_opts) do
     quote do
-      import Ash.Node.Macros
+      import Dpi.Node.Macros
     end
   end
 end
